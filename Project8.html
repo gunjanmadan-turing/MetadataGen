@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate JSON from Form Fields</title>
+    <style>
+        body {
+            /* font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; */
+            margin: 0;
+        }
+
+        .navbar {
+            overflow: hidden;
+            background-color: lightblue;
+            position: fixed;
+            top: 0;
+            width: 100%;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+
+        }
+
+        .left-column,
+        .right-column {
+            width: 45%;
+        }
+
+        .left-column {
+            margin-right: 5%;
+        }
+
+        .right-column {
+            margin-left: 5%;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: darkblue;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .prompt-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .collapse-content {
+            display: block;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 10px;
+            cursor: pointer;
+            float: right;
+        }
+
+        #popupDialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 400px;
+            height: 400px;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            visibility: hidden;
+        }
+
+        .main {
+            padding: 16px;
+            margin-top: 30px;
+            height: 1500px;
+            /* Used in this example to enable scrolling */
+        }
+
+        .required:after {
+            content: " *";
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="width: 100%; ">
+        <div class="navbar">
+            <button type="button" onclick="generateJSON()" style="float: right;">Generate JSON</button>
+            <button type="button" onclick="addPrompt()" style="float: right;">Add Prompt</button>
+        </div>
+        <div class="main">
+            <form id="jsonForm">
+                <div class="container">
+
+                    <div class="left-column">
+
+                        <label for="uuid " class="required">UUID:</label>
+                        <input type="text" id="uuid" name="uuid" required>
+                        <button type="button" onclick="generateUUID()">Generate UUID</button>
+
+                        <label for="code_description" class="required">Code Description:</label>
+                        <input type="text" id="code_description" name="code_description" required>
+
+                        <label for="model" class="required">Model:</label>
+                        <!-- <select id="model" name="model" required disabled >
+                        <option value="">Select Model</option>
+                        <option value="claude-3-5-sonnet-20240620" selected>claude-3-5-sonnet-20240620</option>
+                        <option value="claude-3-opus">claude-3-opus</option>
+                    </select> -->
+                        <input type="text" id="model" name="model" value="claude-3-5-sonnet-20240620" readonly>
+
+
+                        <label for="code_base" >Code Base:</label>
+                        <input type="text" id="code_base" name="code_base" >
+
+                        <label for="difficulty" class="required">Repo Difficulty:</label>
+                        <select id="difficulty" name="difficulty" required>
+                            <option value="">Select Repo Difficulty</option>
+                            <option value=1>1</option>
+                            <option value=2>2</option>
+                            <option value=3>3</option>
+                            <option value=4>4</option>
+                            <option value=5>5</option>
+                        </select>
+
+                        <label for="workflow" class="required">Workflow:</label>
+                        <select id="workflow" name="workflow" required>
+                            <option value="">Select Workflow</option>
+                            <option value="new">New</option>
+                            <option value="library">Library</option>
+                            <option value="existing_codebase">Existing Codebase</option>
+                        </select>
+                        <label for="language">Language:</label>
+                        <input type="text" id="language" name="language" value="python" readonly>
+
+                        <label for="jira" class="required">Jira:</label>
+                        <input type="text" id="jira" name="jira" required>
+
+                        <!-- Submit button -->
+
+
+                    </div>
+
+                    <div class="right-column">
+                        <div id="promptsContainer">
+                            <!-- Prompt template -->
+                            <div class="prompt-container" data-prompt-index="0">
+                                <div class="prompt-header">
+                                    <div>
+                                        <h3>Prompt 1</h3>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="toggle-btn"
+                                            onclick="toggleCollapse(this)">+</button>
+                                        <button type="button" class="delete-btn"
+                                            onclick="deletePrompt(this)">Delete</button>
+                                    </div>
+                                </div>
+                                <div class="collapse-content">
+                                    <label for="prompt0" class="required">Prompt:</label>
+                                    <input type="text" id="prompt0" name="prompts[0].prompt" required>
+
+                                    <label for="difficulty0" class="required">Difficulty (1-5):</label>
+                                    <select id="difficulty0" name="prompts[0].difficulty" required>
+                                        <option value="">Select Prompt Difficulty</option>
+                                        <option value=1>1</option>
+                                        <option value=2>2</option>
+                                        <option value=3>3</option>
+                                        <option value=4>4</option>
+                                        <option value=5>5</option>
+                                    </select>
+
+
+                                    <label for="levelOfCorrectness0" class="required">Level of Correctness (-1, 0, 1,
+                                        2):</label>
+                                    <select id="levelOfCorrectness0" name="prompts[0].level_of_correctness" required>
+                                        <option value="">Select Level of Correctness</option>
+                                        <option value="-1">-1</option>
+                                        <option value="0">0</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                    </select>
+
+                                    <label for="choice0" class="required">Choice (-4 to 4):</label>
+                                    
+                                    <select id="choice0" name="prompts[0].choice" required>
+                                        <option value="">Select Choice made</option>
+                                        <option value=-4>-4</option>
+                                        <option value=-3>-3</option>
+                                        <option value=-2>-2</option>
+                                        <option value=-1>-1</option>
+                                        <option value=0>0</option>
+                                        <option value=1>1</option>
+                                        <option value=2>2</option>
+                                        <option value=3>3</option>
+                                        <option value=4>4</option>
+                                    </select>
+                                    <label for="thumbs0">Thumbs (up or down):</label>
+                                    <select id="thumbs0" name="prompts[0].thumbs">
+                                        <option value="">Select Thumbs</option>
+                                        <option value="up">Up</option>
+                                        <option value="down">Down</option>
+                                    </select>
+
+                                    <label for="activity0" class="required">Activity:</label>
+                                    <select id="activity0" name="prompts[0].activity" required>
+                                        <option value="">Select Activity</option>
+                                        <option value="feature_addition">Feature Addition</option>
+                                        <option value="feature_removal">Feature Removal</option>
+                                        <option value="feature_enhancement">Feature Enhancement</option>
+                                        <option value="tests">Tests</option>
+                                        <option value="performance">Performance</option>
+                                        <option value="security">Security</option>
+                                        <option value="remove_unused">Remove Unused</option>
+                                        <option value="bugs">Bugs</option>
+                                    </select>
+
+
+                                    <label for="issueType0">Issue Type:</label>
+                                    <select id="issueType0" name="prompts[0].issue_type" >
+                                        <option value="">Select Issue Type</option>
+                                        <option value="tests">Tests</option>
+                                        <option value="fact">Fact</option>
+                                        <option value="setup">Setup</option>
+                                        <option value="execute">Execute</option>
+                                        <option value="tool">Tool</option>
+                                        <option value="code_correctness">Code_correctness</option> <option value="missing_dependency">Missing Dependency</option>
+                                        <option value="other">Other</option>
+
+                                    </select>
+
+                                    <label for="issueComment0">Issue Comment:</label>
+                                    <input type="text" id="issueComment0" name="prompts[0].issue_comment">
+
+                                    <label for="issueSource0">Issue Source:</label>
+                                    <input type="text" id="issueSource0" name="prompts[0].issue_source">
+
+                                    <label for="codeExecution0" class="required">Code Execution:</label>
+                                    <select id="codeExecution0" name="prompts[0].code_execution" required>
+                                        <option value="">Select Code Execution</option>
+                                        <option value="partial">Partial</option>
+                                        <option value="full">Full</option>
+                                        <option value="error">Error</option>
+                                    </select>
+
+
+                                    <label for="gdrive0" class="required">Google Drive Link:</label>
+                                    <input type="text" id="gdrive0" name="prompts[0].gdrive" required>
+
+                                    <label for="comment0" class="required">Comment:</label>
+                                    <input type="text" id="comment0" name="prompts[0].comment" required>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="popupDialog">
+        <textarea id="jsonOutput" style="width: 400px; height: 300px; " readonly></textarea>
+        <button onclick="openPop()">
+            Close
+        </button>
+        <button onclick="copyJson()">
+            Copy Json
+        </button>
+    </div>
+
+    <script>
+        let promptIndex = 1;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('jsonForm');
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    const field = form.elements[key];
+                    if (field) {
+                        field.value = localStorage.getItem(key);
+                    }
+                }
+            }
+        });
+
+          // Save form values to Local Storage on change
+          document.getElementById('jsonForm').addEventListener('input', (event) => {
+            const field = event.target;
+            localStorage.setItem(field.name, field.value);
+        });
+
+        function generateUUID() {
+            const uuidInput = document.getElementById('uuid');
+            uuidInput.value = uuidv4();
+        }
+
+        function addPrompt() {
+            const promptsContainer = document.getElementById('promptsContainer');
+            const div = document.createElement('div');
+            div.classList.add('prompt-container');
+            div.setAttribute('data-prompt-index', promptIndex);
+
+            div.innerHTML = `
+                <div class="prompt-header">
+                    <div>
+                    <h3>Prompt ${promptIndex + 1}</h3></div>
+                    <div>
+                    <button type="button" class="toggle-btn" onclick="toggleCollapse(this)">+</button>
+                    <button type="button" class="delete-btn" onclick="deletePrompt(this)">Delete</button></div>
+                </div>
+                <div class="collapse-content">
+                    <label for="prompt${promptIndex}" class="required">Prompt:</label>
+                    <input type="text" id="prompt${promptIndex}" name="prompts[${promptIndex}].prompt" required>
+
+                    <label for="difficulty${promptIndex}" class="required">Difficulty (1-5):</label>
+                      <select id="difficulty${promptIndex}" name="prompts[${promptIndex}].difficulty" required>
+                                    <option value="">Select Prompt Difficulty</option>
+                                    <option value=1>1</option>
+                                    <option value=2>2</option>
+                                    <option value=3>3</option>
+                                    <option value=4>4</option>
+                                    <option value=5>5</option>
+                                </select>
+        
+
+                    <label for="levelOfCorrectness${promptIndex}" class="required">Level of Correctness (-1, 0, 1, 2):</label>
+                    <select id="levelOfCorrectness${promptIndex}" name="prompts[${promptIndex}].level_of_correctness" required>
+                        <option value="">Select Level of Correctness</option>
+                        <option value="-1">-1</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                    </select>
+
+                    <label for="choice${promptIndex}" class="required">Choice (-4 to 4):</label>
+                   
+                     <select id="choice${promptIndex}" name="prompts[${promptIndex}].choice" required>
+                                    <option value="">Select Choice made</option>
+                                    <option value=-4>-4</option>
+                                    <option value=-3>-3</option>
+                                    <option value=-2>-2</option>
+                                    <option value=-1>-1</option>
+                                    <option value=0>0</option>
+                                    <option value=1>1</option>
+                                    <option value=2>2</option>
+                                    <option value=3>3</option>
+                                    <option value=4>4</option>
+                                </select>
+
+                    <label for="thumbs${promptIndex}">Thumbs (up or down):</label>
+                    <select id="thumbs${promptIndex}" name="prompts[${promptIndex}].thumbs" >
+                        <option value="">Select Thumbs</option>
+                        <option value="up">Up</option>
+                        <option value="down">Down</option>
+                    </select>
+
+                    <label for="activity${promptIndex}" class="required">Activity:</label>
+                    <select id="activity${promptIndex}" name="prompts[${promptIndex}].activity" required>
+                                    <option value="">Select Activity</option>
+                                    <option value="feature_addition">Feature Addition</option>
+                                    <option value="feature_removal">Feature Removal</option>
+                                    <option value="feature_enhancement">Feature Enhancement</option>
+                                    <option value="tests">Tests</option>
+                                    <option value="performance">Performance</option>
+                                    <option value="security">Security</option>
+                                    <option value="remove_unused">Remove Unused</option>
+                                    <option value="bugs">Bugs</option>
+                                </select>
+
+                    <label for="issueType${promptIndex}">Issue Type:</label>
+                    <select id="issueType${promptIndex}" name="prompts[${promptIndex}].issue_type">
+                                        <option value="">Select Issue Type</option>
+                                        <option value="tests">Tests</option>
+                                        <option value="fact">Fact</option>
+                                        <option value="setup">Setup</option>
+                                        <option value="execute">Execute</option>
+                                        <option value="tool">Tool</option>
+                                        <option value="code_correctness">Code_correctness</option>
+                                        <option value="other">Other</option>
+                    </select>
+                    <label for="issueComment${promptIndex}">Issue Comment:</label>
+                    <input type="text" id="issueComment${promptIndex}" name="prompts[${promptIndex}].issue_comment" >
+
+                    <label for="issueSource${promptIndex}">Issue Source:</label>
+                    <input type="text" id="issueSource${promptIndex}" name="prompts[${promptIndex}].issue_source" >
+
+                    <label for="codeExecution${promptIndex}" class="required">Code Execution:</label>
+                    <select id="codeExecution${promptIndex}" name="prompts[${promptIndex}].code_execution" required>
+                        <option value="">Select Code Execution</option>
+                        <option value="partial">Partial</option>
+                        <option value="full">Full</option>
+                        <option value="error">Error</option>
+                    </select>
+                   
+                    <label for="gdrive${promptIndex}" class="required">Google Drive Link:</label>
+                    <input type="text" id="gdrive${promptIndex}" name="prompts[${promptIndex}].gdrive" required>
+
+                    <label for="comment${promptIndex}" class="required">Comment:</label>
+                    <input type="text" id="comment${promptIndex}" name="prompts[${promptIndex}].comment" required>
+                </div>
+            `;
+            promptsContainer.appendChild(div);
+
+            for (var i = 0; i < promptIndex; i++) {
+
+                const d = document.querySelector(`[data-prompt-index="${i}"]`).getElementsByClassName("collapse-content");
+                const b = document.querySelector(`[data-prompt-index="${i}"]`).getElementsByClassName("toggle-btn");
+
+                d[0].style.display = "none";
+                b[0].textContent = "+";
+            }
+
+            promptIndex++;
+        }
+
+        function deletePrompt(btn) {
+            const promptContainer = btn.closest('.prompt-container');
+            promptContainer.remove();
+            promptIndex--;
+        }
+
+        function toggleCollapse(btn) {
+            const content = btn.parentNode.parentNode.nextElementSibling;
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                btn.textContent = "-";
+            } else {
+                content.style.display = "none";
+                btn.textContent = "+";
+            }
+
+
+        }
+
+        function generateJSON() {
+            const form = document.getElementById('jsonForm');
+
+            if (form.checkValidity()) {
+                const formData = new FormData(form);
+                let jsonObject = {};
+                formData.forEach((value, key) => {
+                    if (key.startsWith('prompts')) {
+                        const promptKey = key.substring(key.indexOf(".") + 1);
+                        const promptIndex = key.match(/\d+/)[0];
+                        if (!jsonObject['prompts']) {
+                            jsonObject['prompts'] = [];
+                        }
+                        if (!jsonObject['prompts'][promptIndex]) {
+                            jsonObject['prompts'][promptIndex] = {};
+                        }
+                        jsonObject['prompts'][promptIndex][promptKey] = value;
+                    } else {
+                        jsonObject[key] = value;
+                    }
+                });
+
+                jsonObject['prompts'] = jsonObject['prompts'].filter(n => n)
+                let jsonString = JSON.stringify(jsonObject, null, 2);
+                const regex = /"(-|)([0-9]+(?:\.[0-9]+)?)"/g
+                jsonString = jsonString.replace(regex, '$1$2')
+                window.scrollTo(0, 0);
+                openPop();
+                document.getElementById('jsonOutput').textContent = jsonString;
+            } else {
+                form.reportValidity();
+            }
+        }
+
+        // Function to generate UUID (v4)
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function openPop() {
+            const popDialog =
+                document.getElementById(
+                    "popupDialog"
+                );
+            popDialog.style.visibility =
+                popDialog.style.visibility ===
+                    "visible"
+                    ? "hidden"
+                    : "visible";
+        }
+
+        function copyJson() {
+            var copyText = document.getElementById("jsonOutput");
+            copyText.select();
+            navigator.clipboard.writeText(copyText.value);
+
+            localStorage.clear();
+            const formData = document.getElementById('jsonForm');
+            for (let i = 0; i < formData.elements.length; i++) {
+
+                const field = formData.elements[i];
+                if(field.key=='model'){
+                    continue
+                }
+                field.value = ''; // Clear form fields
+            }
+        }
+    </script>
+</body>
+
+</html>
